@@ -137,6 +137,16 @@ npm run dev
 | `HOST` / `PORT`               | 服务监听地址，默认 `0.0.0.0:8000`            |
 
 
+## Docker
+
+`docker-compose.yml` 包含 Redis、Python 后端和 Jaeger 三个服务。先在仓库根目录的 `.env` 中填好 `OPENAI_API_KEY`，使用自定义网关时一并填写 `OPENAI_BASE_URL`、`MODEL_NAME` 和 `EMBEDDING_MODEL`，然后启动：
+
+```powershell
+docker compose up --build
+```
+
+后端在 `http://localhost:8000`，Jaeger 界面在 `http://localhost:16686`。前端仍按上文在本地用 `npm run dev` 启动。
+
 ## 离线评测
 
 `python-impl/eval/datasets/` 下有三份人工标注的评测集：
