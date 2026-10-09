@@ -116,12 +116,6 @@ npm run dev
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | 追踪导出地址；留空则输出到控制台 |
 | `HOST` / `PORT` | 服务监听地址，默认 `0.0.0.0:8000` |
 
-## Docker
-
-当前仓库包含 Python 实现。`docker-compose.yml` 里还声明了 Java 和 Go 服务，对应目录不在本仓库中，整文件启动会失败。只启动已有服务：
-
-```powershell
-docker compose up redis python-agent jaeger
 ```
 
 先在仓库根目录准备好 `OPENAI_API_KEY`。Jaeger 界面在 `http://localhost:16686`，后端在 `http://localhost:8000`。
