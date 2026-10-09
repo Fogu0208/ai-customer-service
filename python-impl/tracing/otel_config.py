@@ -88,8 +88,20 @@ def trace_agent_call(agent_name: str) -> Callable:
         async def wrapper(*args, **kwargs) -> Any:
             tracer = get_tracer()
 
+            # 无 OTLP 采集器时也要统计指标，只是不产生 Span
             if tracer is None:
-                return await func(*args, **kwargs)
+                start_time = time.time()
+                try:
+                    result = await func(*args, **kwargs)
+                    get_default_metrics().record_call(
+                        agent_name, (time.time() - start_time) * 1000, True
+                    )
+                    return result
+                except Exception:
+                    get_default_metrics().record_call(
+                        agent_name, (time.time() - start_time) * 1000, False
+                    )
+                    raise
 
             span_name = f"agent.{agent_name}.{func.__name__}"
 
@@ -104,6 +116,7 @@ def trace_agent_call(agent_name: str) -> Callable:
 
                     span.set_attribute("agent.duration_ms", duration_ms)
                     span.set_attribute("agent.success", True)
+                    get_default_metrics().record_call(agent_name, duration_ms, True)
 
                     if isinstance(result, dict):
                         span.set_attribute("agent.result_keys", str(list(result.keys())))
@@ -116,6 +129,7 @@ def trace_agent_call(agent_name: str) -> Callable:
                     span.set_attribute("agent.success", False)
                     span.set_attribute("agent.error", str(e))
                     span.record_exception(e)
+                    get_default_metrics().record_call(agent_name, duration_ms, False)
                     raise
 
         return wrapper
@@ -148,3 +162,12 @@ class AgentMetrics:
                 "error_rate": errors / calls if calls > 0 else 0,
             }
         return summary
+
+
+# 进程内共享的指标收集器（无 OTLP 采集器时也能统计）
+_default_metrics = AgentMetrics()
+
+
+def get_default_metrics() -> AgentMetrics:
+    """获取全局 Agent 指标收集器"""
+    return _default_metrics

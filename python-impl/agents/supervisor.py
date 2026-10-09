@@ -6,7 +6,9 @@ Supervisor编排Agent — 中央协调者
 
 from __future__ import annotations
 
+import json
 import operator
+import os
 from typing import Annotated, Any, Literal, TypedDict
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
@@ -98,11 +100,37 @@ class SupervisorNode:
             "current_agent": "supervisor",
         }
 
+    @staticmethod
+    def _stringify_result(result: Any) -> str:
+        """把子Agent的返回统一成可展示的文本（dict/list 会转成可读字符串）"""
+        if result is None:
+            return ""
+        if isinstance(result, str):
+            return result.strip()
+        if isinstance(result, (int, float, bool)):
+            return str(result)
+        if isinstance(result, dict):
+            # 优先取语义明确的字段
+            for key in ("answer", "response", "content", "result", "message", "summary"):
+                if isinstance(result.get(key), str) and result[key].strip():
+                    return result[key].strip()
+            # 作为来源引用渲染
+            if "source" in result and "content" in result:
+                return f"[{result['source']}] {result['content']}"
+            return json.dumps(result, ensure_ascii=False)
+        if isinstance(result, (list, tuple)):
+            items = [SupervisorNode._stringify_result(i) for i in result]
+            return "\n".join([i for i in items if i])
+        return str(result)
+
     @trace_agent_call("supervisor_synthesize")
     async def synthesize_response(self, state: AgentState) -> AgentState:
         """汇总子Agent结果，生成最终回复"""
         sub_results = state.get("sub_results", {})
         compliance_passed = state.get("compliance_passed", True)
+
+        # 只用于观测、不进最终文案的元数据
+        META_KEYS = {"intent_router", "compliance"}
 
         if not compliance_passed:
             final_response = (
@@ -112,8 +140,11 @@ class SupervisorNode:
         else:
             result_parts = []
             for agent_name, result in sub_results.items():
-                if result:
-                    result_parts.append(result)
+                if agent_name in META_KEYS:
+                    continue
+                text = self._stringify_result(result)
+                if text:
+                    result_parts.append(text)
             final_response = "\n\n".join(result_parts) if result_parts else "抱歉，暂时无法处理您的请求，请稍后重试。"
 
         return {
@@ -164,7 +195,7 @@ def create_supervisor_graph(
         enable_checkpointing: 是否启用检查点（支持断点恢复）
     """
     if llm is None:
-        llm = ChatOpenAI(model="gpt-4o", temperature=0)
+        llm = ChatOpenAI(model=os.getenv("MODEL_NAME", "gpt-4o"), temperature=0)
     if working_memory is None:
         working_memory = WorkingMemory()
 

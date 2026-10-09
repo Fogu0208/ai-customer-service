@@ -20,7 +20,7 @@ from memory.working_memory import WorkingMemory
 from memory.short_term import ShortTermMemory
 from memory.long_term import LongTermMemory
 from mcp.mcp_server import MCPToolServer, create_default_tools
-from tracing.otel_config import init_tracer, AgentMetrics
+from tracing.otel_config import init_tracer, get_default_metrics
 
 load_dotenv()
 
@@ -29,7 +29,7 @@ working_memory = WorkingMemory()
 short_term_memory = ShortTermMemory(redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0"))
 long_term_memory = LongTermMemory(index_path=os.getenv("FAISS_INDEX_PATH", "./vector_store/faiss_index"))
 mcp_server = create_default_tools(MCPToolServer())
-metrics = AgentMetrics()
+metrics = get_default_metrics()
 graph = None
 
 
