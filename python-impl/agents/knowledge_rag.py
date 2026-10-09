@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -57,8 +58,7 @@ class KnowledgeRAGAgent:
     @trace_agent_call("rag_retrieve")
     async def retrieve_documents(self, query: str, top_k: int = 5) -> list[dict]:
         """从向量数据库检索相关文档"""
-        docs = self.long_term_memory.search(query, top_k=top_k)
-        return docs
+        return await asyncio.to_thread(self.long_term_memory.search, query, top_k)
 
     @trace_agent_call("rag_rerank")
     async def rerank_documents(

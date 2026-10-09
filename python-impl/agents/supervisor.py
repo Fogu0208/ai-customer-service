@@ -1,17 +1,16 @@
 """
 Supervisor编排Agent — 中央协调者
-负责接收用户请求，根据意图路由到对应子Agent，汇总结果返回。
-采用LangGraph StateGraph实现，支持并行调度和Human-in-the-Loop断点。
+负责接收用户请求，调用意图识别Agent得到结构化意图后路由到对应子Agent，汇总结果返回。
+采用LangGraph StateGraph实现，通过checkpointer按会话保存图状态以支持多轮对话。
 """
 
 from __future__ import annotations
 
 import json
-import operator
 import os
-from typing import Annotated, Any, Literal, TypedDict
+from typing import Annotated, Any, TypedDict
 
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, BaseMessage
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, StateGraph
 from langgraph.graph.message import add_messages
@@ -44,60 +43,41 @@ class AgentState(TypedDict):
 
 # ─── Supervisor节点 ───
 
-SUPERVISOR_SYSTEM_PROMPT = """你是一个智能客服系统的Supervisor（主管编排Agent）。
-你的职责是：
-1. 分析用户意图，决定分发给哪个子Agent处理
-2. 汇总子Agent的处理结果，生成最终回复
-3. 确保所有回复都经过合规审查
-
-可用的子Agent：
-- intent_router: 意图识别和分类
-- knowledge_rag: 知识库检索和回答
-- ticket_handler: 工单创建和查询
-- compliance_checker: 合规审查和敏感词检测
-
-根据用户消息，决定下一步路由到哪个Agent。
-"""
-
-
 class SupervisorNode:
     """Supervisor决策节点"""
 
-    def __init__(self, llm: ChatOpenAI, working_memory: WorkingMemory):
-        self.llm = llm
+    def __init__(self, intent_router: IntentRouterAgent, working_memory: WorkingMemory):
+        self.intent_router = intent_router
         self.working_memory = working_memory
 
     @trace_agent_call("supervisor")
     async def route_decision(self, state: AgentState) -> AgentState:
-        """分析用户意图，决定路由"""
+        """调用意图识别Agent，按结构化结果中的建议路由"""
         messages = state["messages"]
         session_id = state.get("session_id", "default")
 
-        context = self.working_memory.get_context(session_id)
+        result = await self.intent_router.classify(messages[-1].content, history=messages[:-1])
 
-        routing_prompt = [
-            SystemMessage(content=SUPERVISOR_SYSTEM_PROMPT),
-            SystemMessage(content=f"当前工作记忆上下文: {context}"),
-            *messages,
-            HumanMessage(content=(
-                "请分析用户的最新消息，返回应该路由到的Agent名称。"
-                "只返回以下之一: knowledge_rag, ticket_handler, compliance_checker"
-            )),
-        ]
-
-        response = await self.llm.ainvoke(routing_prompt)
-        intent = response.content.strip().lower()
-
-        valid_intents = {"knowledge_rag", "ticket_handler", "compliance_checker"}
-        if intent not in valid_intents:
-            intent = "knowledge_rag"
-
-        self.working_memory.update(session_id, {"last_intent": intent})
+        self.working_memory.update(session_id, {
+            "last_intent": result.suggested_agent,
+            "primary_intent": result.primary_intent.value,
+            "entities": result.entities,
+        })
 
         return {
             **state,
-            "intent": intent,
+            "intent": result.suggested_agent,
             "current_agent": "supervisor",
+            "sub_results": {
+                **state.get("sub_results", {}),
+                "intent_router": {
+                    "primary": result.primary_intent.value,
+                    "secondary": result.secondary_intent,
+                    "confidence": result.confidence,
+                    "entities": result.entities,
+                    "parsed": result.parsed,
+                },
+            },
         }
 
     @staticmethod
@@ -157,12 +137,12 @@ class SupervisorNode:
 # ─── 路由函数 ───
 
 def route_to_agent(state: AgentState) -> str:
-    """根据意图路由到对应Agent节点"""
+    """根据意图路由到对应Agent节点；资金安全等风险事件先升级人工，再由知识库给出安全指引"""
     intent = state.get("intent", "knowledge_rag")
     route_map = {
         "knowledge_rag": "knowledge_rag",
         "ticket_handler": "ticket_handler",
-        "compliance_checker": "compliance_check",
+        "compliance_checker": "risk_escalation",
     }
     return route_map.get(intent, "knowledge_rag")
 
@@ -195,13 +175,13 @@ def create_supervisor_graph(
         enable_checkpointing: 是否启用检查点（支持断点恢复）
     """
     if llm is None:
-        llm = ChatOpenAI(model=os.getenv("MODEL_NAME", "gpt-4o"), temperature=0)
+        llm = ChatOpenAI(model=os.getenv("MODEL_NAME", "gpt-4o"), temperature=0, timeout=60, max_retries=2)
     if working_memory is None:
         working_memory = WorkingMemory()
 
-    supervisor = SupervisorNode(llm, working_memory)
-
     intent_router = IntentRouterAgent(llm)
+    supervisor = SupervisorNode(intent_router, working_memory)
+
     knowledge_agent = KnowledgeRAGAgent(llm, long_term_memory)
     ticket_agent = TicketHandlerAgent(llm)
     compliance_agent = ComplianceCheckerAgent(llm)
@@ -211,6 +191,7 @@ def create_supervisor_graph(
     graph.add_node("supervisor_route", supervisor.route_decision)
     graph.add_node("knowledge_rag", knowledge_agent.process)
     graph.add_node("ticket_handler", ticket_agent.process)
+    graph.add_node("risk_escalation", ticket_agent.escalate_risk)
     graph.add_node("compliance_check", compliance_agent.process)
     graph.add_node("synthesize", supervisor.synthesize_response)
 
@@ -222,10 +203,11 @@ def create_supervisor_graph(
         {
             "knowledge_rag": "knowledge_rag",
             "ticket_handler": "ticket_handler",
-            "compliance_check": "compliance_check",
+            "risk_escalation": "risk_escalation",
         },
     )
 
+    graph.add_edge("risk_escalation", "knowledge_rag")
     graph.add_edge("knowledge_rag", "compliance_check")
     graph.add_edge("ticket_handler", "compliance_check")
     graph.add_edge("compliance_check", "synthesize")

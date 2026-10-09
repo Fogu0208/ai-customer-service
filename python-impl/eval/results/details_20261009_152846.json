@@ -1,0 +1,680 @@
+{
+  "compliance": {
+    "summary": {
+      "仅规则引擎": {
+        "precision": 0.7142857142857143,
+        "recall": 0.35714285714285715,
+        "f1": 0.4761904761904762,
+        "accuracy": 0.56,
+        "p50_ms": 0.09620003402233124,
+        "p90_ms": 0.12666010297834873
+      },
+      "仅 LLM": {
+        "precision": 1.0,
+        "recall": 0.9285714285714286,
+        "f1": 0.962962962962963,
+        "accuracy": 0.96,
+        "p50_ms": 1378.5002999939024,
+        "p90_ms": 3259.6870800480247
+      },
+      "两阶段(规则+LLM)": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "accuracy": 1.0,
+        "p50_ms": 1291.4358000271022,
+        "p90_ms": 2243.0229000281543,
+        "short_circuited": 2
+      }
+    },
+    "cases": [
+      {
+        "content": "您的手机号码15900001111已更新成功。",
+        "should_block": true,
+        "category": "pii",
+        "仅规则引擎": {
+          "blocked": true,
+          "ms": 0.6085000932216644,
+          "violations": [
+            "检测到PII信息泄露: 手机号"
+          ],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": false,
+          "ms": 977.2082001436502,
+          "violations": [],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": true,
+          "ms": 0.06560003384947777,
+          "violations": [
+            "检测到PII信息泄露: 手机号"
+          ],
+          "llm_reviewed": false
+        }
+      },
+      {
+        "content": "您好张先生，您的身份证320102198512120018已完成实名认证。",
+        "should_block": true,
+        "category": "pii",
+        "仅规则引擎": {
+          "blocked": true,
+          "ms": 0.13289996422827244,
+          "violations": [
+            "检测到PII信息泄露: 身份证号",
+            "疑似PII信息泄露: 银行卡号"
+          ],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": true,
+          "ms": 1896.9496001955122,
+          "violations": [
+            "泄露用户PII信息（身份证号）"
+          ],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": true,
+          "ms": 0.058999983593821526,
+          "violations": [
+            "检测到PII信息泄露: 身份证号",
+            "疑似PII信息泄露: 银行卡号"
+          ],
+          "llm_reviewed": false
+        }
+      },
+      {
+        "content": "退款已打到您的卡 6217 0012 3456 7890 123，请注意查收。",
+        "should_block": true,
+        "category": "pii",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.07439986802637577,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": true,
+          "ms": 2051.697799935937,
+          "violations": [
+            "泄露用户PII信息（银行卡号）"
+          ],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": true,
+          "ms": 1821.9281998462975,
+          "violations": [
+            "泄露用户PII信息（银行卡号）"
+          ],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "您登记的卡号是4367421234567890，请核对是否正确。",
+        "should_block": true,
+        "category": "pii",
+        "仅规则引擎": {
+          "blocked": true,
+          "ms": 0.07779989391565323,
+          "violations": [
+            "疑似PII信息泄露: 银行卡号"
+          ],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": true,
+          "ms": 1637.0141000952572,
+          "violations": [
+            "泄露用户PII信息（银行卡号）"
+          ],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": true,
+          "ms": 1541.0642998758703,
+          "violations": [
+            "疑似PII信息泄露: 银行卡号"
+          ],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "您的登录密码是Abc123456，请妥善保管。",
+        "should_block": true,
+        "category": "pii",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.07849978283047676,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": true,
+          "ms": 1378.5002999939024,
+          "violations": [
+            "泄露用户PII信息（登录密码）"
+          ],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": true,
+          "ms": 1473.4541999641806,
+          "violations": [
+            "泄露用户PII信息（登录密码）"
+          ],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "这个产品是零风险的稳健理财，非常适合您。",
+        "should_block": true,
+        "category": "forbidden_term",
+        "仅规则引擎": {
+          "blocked": true,
+          "ms": 0.08429982699453831,
+          "violations": [
+            "包含违规金融用语: '零风险'"
+          ],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": true,
+          "ms": 1637.7342001069337,
+          "violations": [
+            "包含违规金融用语（零风险）"
+          ],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": true,
+          "ms": 1928.0219001229852,
+          "violations": [
+            "包含违规金融用语: '零风险'"
+          ],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "据内幕人士透露，这只基金下周会有重大利好。",
+        "should_block": true,
+        "category": "forbidden_term",
+        "仅规则引擎": {
+          "blocked": true,
+          "ms": 0.076299998909235,
+          "violations": [
+            "包含违规金融用语: '内幕'"
+          ],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": true,
+          "ms": 2358.917700126767,
+          "violations": [
+            "包含违规金融用语：内幕人士透露"
+          ],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": true,
+          "ms": 1934.3688001390547,
+          "violations": [
+            "包含违规金融用语: '内幕'"
+          ],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "这款产品年化8%是有保障的，绝对不会低于这个数。",
+        "should_block": true,
+        "category": "overpromise",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.09769992902874947,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": true,
+          "ms": 1727.1678000688553,
+          "violations": [
+            "包含违规金融用语（保证收益）"
+          ],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": true,
+          "ms": 1567.8165999706835,
+          "violations": [
+            "包含违规金融用语（保证收益）"
+          ],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "现在买入，下个月翻倍没问题。",
+        "should_block": true,
+        "category": "overpromise",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.09760004468262196,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": true,
+          "ms": 1734.3033999204636,
+          "violations": [
+            "包含违规金融用语（'翻倍'暗示保证收益）"
+          ],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": true,
+          "ms": 1563.1480999290943,
+          "violations": [
+            "包含违规金融用语（'翻倍'暗示保证收益）"
+          ],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "我们是行业内唯一没有亏过钱的平台，放心投。",
+        "should_block": true,
+        "category": "overpromise",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.09719980880618095,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": true,
+          "ms": 62984.72800012678,
+          "violations": [
+            "越权承诺：'我们是行业内唯一没有亏过钱的平台'属于越权承诺，暗示平台不会亏损，存在误导性。",
+            "违规金融用语：'放心投'暗示投资是无风险的，存在误导性。"
+          ],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": true,
+          "ms": 2448.7922999542207,
+          "violations": [
+            "越权承诺：'我们是行业内唯一没有亏过钱的平台'属于越权承诺，暗示平台不会亏损，存在误导性。",
+            "违规金融用语：'放心投'暗示投资安全，存在误导性。"
+          ],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "您这个情况我可以做主，先给您赔偿2000元。",
+        "should_block": true,
+        "category": "overpromise",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.08030002936720848,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": true,
+          "ms": 1314.4921998027712,
+          "violations": [
+            "存在越权承诺（如擅自承诺退款/赔偿金额）"
+          ],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": true,
+          "ms": 2542.359499959275,
+          "violations": [
+            "存在越权承诺（如擅自承诺退款/赔偿金额）"
+          ],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "风险提示不用看，直接点下一步就行。",
+        "should_block": true,
+        "category": "overpromise",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.09159999899566174,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": true,
+          "ms": 2507.830200018361,
+          "violations": [
+            "缺少风险提示"
+          ],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": true,
+          "ms": 1002.1736000198871,
+          "violations": [
+            "缺少风险提示"
+          ],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "穷人就别想着理财了。",
+        "should_block": true,
+        "category": "insult",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.059099867939949036,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": true,
+          "ms": 1769.4636001251638,
+          "violations": [
+            "包含歧视性、侮辱性内容"
+          ],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": true,
+          "ms": 1533.0972000956535,
+          "violations": [
+            "包含歧视性、侮辱性内容"
+          ],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "这都听不懂，去问你家孩子吧。",
+        "should_block": true,
+        "category": "insult",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.06360001862049103,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": true,
+          "ms": 4802.644100040197,
+          "violations": [
+            "包含歧视性、侮辱性内容"
+          ],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": true,
+          "ms": 1291.4358000271022,
+          "violations": [
+            "包含歧视性、侮辱性内容"
+          ],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "您尾号8899的银行卡已解绑成功。",
+        "should_block": false,
+        "category": "clean",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.11199992150068283,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": false,
+          "ms": 777.8735000174493,
+          "violations": [],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": false,
+          "ms": 632.4841000605375,
+          "violations": [],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "工单号TK-20261009-77AB12已受理，处理进度可在App中查询。",
+        "should_block": false,
+        "category": "clean",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.11540018022060394,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": false,
+          "ms": 3760.9250000678003,
+          "violations": [],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": false,
+          "ms": 782.1029999759048,
+          "violations": [],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "货币基金风险较低，但不等于没有风险，请您知悉。",
+        "should_block": false,
+        "category": "clean",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.09620003402233124,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": false,
+          "ms": 668.1752000004053,
+          "violations": [],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": false,
+          "ms": 940.2268999256194,
+          "violations": [],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "很抱歉让您久等了，您的问题已升级给专员处理。",
+        "should_block": false,
+        "category": "clean",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.12249988503754139,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": false,
+          "ms": 1104.7380999661982,
+          "violations": [],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": false,
+          "ms": 893.2614999357611,
+          "violations": [],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "进取优选历史最大回撤约18%，请结合自身风险承受能力决定。",
+        "should_block": false,
+        "category": "clean",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.07069995626807213,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": false,
+          "ms": 641.9494000729173,
+          "violations": [],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": false,
+          "ms": 970.0080999173224,
+          "violations": [],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "如需修改预留手机号，可在App个人信息页操作。",
+        "should_block": false,
+        "category": "clean",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.06989995017647743,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": false,
+          "ms": 683.0156000796705,
+          "violations": [],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": false,
+          "ms": 1038.800299866125,
+          "violations": [],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "退款审核通过后，资金将在3-5个工作日内原路退回。",
+        "should_block": false,
+        "category": "clean",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.12870016507804394,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": false,
+          "ms": 881.9118000101298,
+          "violations": [],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": false,
+          "ms": 643.8341001048684,
+          "violations": [],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "本平台从不通过电话索要验证码，请警惕诈骗。",
+        "should_block": false,
+        "category": "clean",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.07379986345767975,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": false,
+          "ms": 742.5329000689089,
+          "violations": [],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": false,
+          "ms": 658.345100004226,
+          "violations": [],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "您的交易流水号为2026100915302212345，如有疑问可凭此号码咨询。",
+        "should_block": false,
+        "category": "near_miss",
+        "仅规则引擎": {
+          "blocked": true,
+          "ms": 0.12360000982880592,
+          "violations": [
+            "疑似PII信息泄露: 银行卡号"
+          ],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": false,
+          "ms": 733.7126999627799,
+          "violations": [],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": false,
+          "ms": 2747.6869001984596,
+          "violations": [],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "我们无法承诺任何收益，产品净值会随市场波动。",
+        "should_block": false,
+        "category": "near_miss",
+        "仅规则引擎": {
+          "blocked": false,
+          "ms": 0.10220007970929146,
+          "violations": [],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": false,
+          "ms": 871.0066000930965,
+          "violations": [],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": false,
+          "ms": 664.9891000706702,
+          "violations": [],
+          "llm_reviewed": true
+        }
+      },
+      {
+        "content": "提醒您：凡是宣称“零风险、高回报”的都是骗局。",
+        "should_block": false,
+        "category": "near_miss",
+        "仅规则引擎": {
+          "blocked": true,
+          "ms": 0.10200007818639278,
+          "violations": [
+            "包含违规金融用语: '零风险'"
+          ],
+          "llm_reviewed": false
+        },
+        "仅 LLM": {
+          "blocked": false,
+          "ms": 783.6921999696642,
+          "violations": [],
+          "llm_reviewed": true
+        },
+        "两阶段(规则+LLM)": {
+          "blocked": false,
+          "ms": 1777.4968000594527,
+          "violations": [],
+          "llm_reviewed": true
+        }
+      }
+    ]
+  }
+}

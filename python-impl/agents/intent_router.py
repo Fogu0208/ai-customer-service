@@ -10,9 +10,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
+from agents.llm_utils import parse_json_object
 from tracing.otel_config import trace_agent_call
 
 
@@ -34,6 +35,12 @@ class IntentResult:
     confidence: float
     entities: dict[str, str]
     suggested_agent: str
+    parsed: bool = True
+
+
+ROUTABLE_AGENTS = ("knowledge_rag", "ticket_handler", "compliance_checker")
+DEFAULT_AGENT = "knowledge_rag"
+HISTORY_TURNS = 4
 
 
 INTENT_SYSTEM_PROMPT = """你是一个专业的意图识别Agent，负责分析用户的客服消息。
@@ -68,33 +75,46 @@ class IntentRouterAgent:
         self.llm = llm
 
     @trace_agent_call("intent_router")
-    async def classify(self, user_message: str) -> IntentResult:
-        """对用户消息进行意图分类"""
+    async def classify(self, user_message: str, history: list[BaseMessage] | None = None) -> IntentResult:
+        """对用户消息进行意图分类，history 为本轮之前的对话，用于理解指代和追问"""
+        content = f"用户消息: {user_message}"
+        if history:
+            turns = "\n".join(
+                f"{'用户' if m.type == 'human' else '客服'}: {m.content}"
+                for m in history[-HISTORY_TURNS:]
+            )
+            content = f"对话上下文（仅供参考）:\n{turns}\n\n{content}"
+
         messages = [
             SystemMessage(content=INTENT_SYSTEM_PROMPT),
-            HumanMessage(content=f"用户消息: {user_message}"),
+            HumanMessage(content=content),
         ]
 
         response = await self.llm.ainvoke(messages)
+        result = parse_json_object(response.content) or {}
 
-        import json
         try:
-            result = json.loads(response.content)
-        except json.JSONDecodeError:
-            result = {
-                "primary_intent": "unknown",
-                "secondary_intent": "unknown",
-                "confidence": 0.0,
-                "entities": {},
-                "suggested_agent": "knowledge_rag",
-            }
+            primary = IntentCategory(result.get("primary_intent", "unknown"))
+        except ValueError:
+            primary = IntentCategory.UNKNOWN
 
+        try:
+            confidence = float(result.get("confidence", 0.0))
+        except (TypeError, ValueError):
+            confidence = 0.0
+
+        suggested = result.get("suggested_agent")
+        if suggested not in ROUTABLE_AGENTS:
+            suggested = DEFAULT_AGENT
+
+        entities = result.get("entities")
         return IntentResult(
-            primary_intent=IntentCategory(result.get("primary_intent", "unknown")),
-            secondary_intent=result.get("secondary_intent", "unknown"),
-            confidence=result.get("confidence", 0.0),
-            entities=result.get("entities", {}),
-            suggested_agent=result.get("suggested_agent", "knowledge_rag"),
+            primary_intent=primary,
+            secondary_intent=str(result.get("secondary_intent", "unknown")),
+            confidence=confidence,
+            entities=entities if isinstance(entities, dict) else {},
+            suggested_agent=suggested,
+            parsed=bool(result),
         )
 
     @trace_agent_call("intent_router_process")

@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncGenerator
 
 from dotenv import load_dotenv
@@ -24,6 +25,10 @@ from tracing.otel_config import init_tracer, get_default_metrics
 
 load_dotenv()
 
+KNOWLEDGE_BASE_DIR = os.getenv(
+    "KNOWLEDGE_BASE_DIR",
+    str(Path(__file__).resolve().parents[1] / "data" / "knowledge_base"),
+)
 
 working_memory = WorkingMemory()
 short_term_memory = ShortTermMemory(redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0"))
@@ -49,18 +54,9 @@ async def lifespan(app: FastAPI):
         long_term_memory=long_term_memory,
     )
 
-    long_term_memory.add_document(
-        content="我们的理财产品A年化收益率为3.5%-5.2%，投资期限为6个月至3年，最低投资金额10000元。注意：理财非存款，产品有风险，投资须谨慎。",
-        source="product_faq.md",
-    )
-    long_term_memory.add_document(
-        content="退款政策：用户在购买后7天内可申请无理由退款，超过7天需提供合理原因。退款将在3-5个工作日内原路退回。",
-        source="refund_policy.md",
-    )
-    long_term_memory.add_document(
-        content="开户流程：1.准备身份证原件 2.填写开户申请表 3.进行视频认证 4.设置交易密码 5.完成风险评估问卷。整个流程约需15-30分钟。",
-        source="account_guide.md",
-    )
+    added = long_term_memory.load_knowledge_base(KNOWLEDGE_BASE_DIR)
+    if added:
+        long_term_memory.save()
 
     yield
 

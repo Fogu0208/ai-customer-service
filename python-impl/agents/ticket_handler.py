@@ -14,6 +14,7 @@ from typing import Any
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
+from agents.llm_utils import parse_json_object
 from tracing.otel_config import trace_agent_call
 
 
@@ -119,17 +120,13 @@ class TicketHandlerAgent:
 
         response = await self.llm.ainvoke(messages)
 
-        import json
-        try:
-            return json.loads(response.content)
-        except json.JSONDecodeError:
-            return {
-                "action": "create",
-                "ticket_type": "general",
-                "priority": "medium",
-                "summary": user_message[:100],
-                "details": user_message,
-            }
+        return parse_json_object(response.content) or {
+            "action": "create",
+            "ticket_type": "general",
+            "priority": "medium",
+            "summary": user_message[:100],
+            "details": user_message,
+        }
 
     @trace_agent_call("ticket_create")
     async def create_ticket(self, ticket_info: dict, user_id: str) -> str:
@@ -181,6 +178,34 @@ class TicketHandlerAgent:
             f"🕐 创建时间: {ticket['created_at']}\n"
             f"🔄 更新时间: {ticket['updated_at']}"
         )
+
+    @trace_agent_call("ticket_risk_escalation")
+    async def escalate_risk(self, state: dict[str, Any]) -> dict[str, Any]:
+        """资金安全、账户异常、欺诈举报等风险事件：不经LLM分析，直接创建紧急工单并升级人工"""
+        messages = state.get("messages", [])
+        user_id = state.get("user_id", "anonymous")
+        last_message = messages[-1].content if messages else ""
+
+        ticket = self.ticket_store.create(
+            ticket_type="risk_event",
+            priority=TicketPriority.URGENT.value,
+            summary=last_message[:100],
+            details=last_message,
+            user_id=user_id,
+        )
+        self.ticket_store.update_status(ticket["ticket_id"], TicketStatus.ESCALATED.value)
+
+        result = (
+            f"已为您创建紧急工单 {ticket['ticket_id']}，安全专员将优先与您联系。"
+            "如需立即止损，可在App首页使用“一键冻结”功能。"
+        )
+        return {
+            **state,
+            "sub_results": {
+                **state.get("sub_results", {}),
+                "risk_escalation": result,
+            },
+        }
 
     @trace_agent_call("ticket_handler_process")
     async def process(self, state: dict[str, Any]) -> dict[str, Any]:

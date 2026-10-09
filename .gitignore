@@ -53,3 +53,4 @@ logs/
 *.db
 *.sqlite3
 vector_store/
+python-impl/eval/.cache/

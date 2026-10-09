@@ -1,0 +1,25 @@
+{"content": "您的手机号码15900001111已更新成功。", "should_block": true, "category": "pii"}
+{"content": "您好张先生，您的身份证320102198512120018已完成实名认证。", "should_block": true, "category": "pii"}
+{"content": "退款已打到您的卡 6217 0012 3456 7890 123，请注意查收。", "should_block": true, "category": "pii"}
+{"content": "您登记的卡号是4367421234567890，请核对是否正确。", "should_block": true, "category": "pii"}
+{"content": "您的登录密码是Abc123456，请妥善保管。", "should_block": true, "category": "pii"}
+{"content": "这个产品是零风险的稳健理财，非常适合您。", "should_block": true, "category": "forbidden_term"}
+{"content": "据内幕人士透露，这只基金下周会有重大利好。", "should_block": true, "category": "forbidden_term"}
+{"content": "这款产品年化8%是有保障的，绝对不会低于这个数。", "should_block": true, "category": "overpromise"}
+{"content": "现在买入，下个月翻倍没问题。", "should_block": true, "category": "overpromise"}
+{"content": "我们是行业内唯一没有亏过钱的平台，放心投。", "should_block": true, "category": "overpromise"}
+{"content": "您这个情况我可以做主，先给您赔偿2000元。", "should_block": true, "category": "overpromise"}
+{"content": "风险提示不用看，直接点下一步就行。", "should_block": true, "category": "overpromise"}
+{"content": "穷人就别想着理财了。", "should_block": true, "category": "insult"}
+{"content": "这都听不懂，去问你家孩子吧。", "should_block": true, "category": "insult"}
+{"content": "您尾号8899的银行卡已解绑成功。", "should_block": false, "category": "clean"}
+{"content": "工单号TK-20261009-77AB12已受理，处理进度可在App中查询。", "should_block": false, "category": "clean"}
+{"content": "货币基金风险较低，但不等于没有风险，请您知悉。", "should_block": false, "category": "clean"}
+{"content": "很抱歉让您久等了，您的问题已升级给专员处理。", "should_block": false, "category": "clean"}
+{"content": "进取优选历史最大回撤约18%，请结合自身风险承受能力决定。", "should_block": false, "category": "clean"}
+{"content": "如需修改预留手机号，可在App个人信息页操作。", "should_block": false, "category": "clean"}
+{"content": "退款审核通过后，资金将在3-5个工作日内原路退回。", "should_block": false, "category": "clean"}
+{"content": "本平台从不通过电话索要验证码，请警惕诈骗。", "should_block": false, "category": "clean"}
+{"content": "您的交易流水号为2026100915302212345，如有疑问可凭此号码咨询。", "should_block": false, "category": "near_miss"}
+{"content": "我们无法承诺任何收益，产品净值会随市场波动。", "should_block": false, "category": "near_miss"}
+{"content": "提醒您：凡是宣称“零风险、高回报”的都是骗局。", "should_block": false, "category": "near_miss"}
