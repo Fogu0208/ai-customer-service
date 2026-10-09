@@ -1,0 +1,12 @@
+# 密钥只通过 docker-compose 的环境变量传入，不能打进镜像
+.env
+*.env.local
+
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+vector_store/
+eval/.cache/
+eval/results/
