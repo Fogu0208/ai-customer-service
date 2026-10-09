@@ -33,34 +33,6 @@ services:
       redis:
         condition: service_healthy
 
-  # Java实现
-  java-agent:
-    build:
-      context: ./java-impl
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-    depends_on:
-      redis:
-        condition: service_healthy
-
-  # Go实现
-  go-agent:
-    build:
-      context: ./go-impl
-      dockerfile: Dockerfile
-    ports:
-      - "8090:8090"
-    environment:
-      - REDIS_URL=redis://redis:6379/0
-      - PORT=8090
-    depends_on:
-      redis:
-        condition: service_healthy
 
   # Jaeger - 全链路追踪可视化 (可选)
   jaeger:
